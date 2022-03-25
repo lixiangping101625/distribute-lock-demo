@@ -36,7 +36,7 @@ public class Select4UpdateController {
             throw new RuntimeException("数据不存在");
         log.info("进入了锁");
         try {
-            Thread.sleep(60000);
+            Thread.sleep(20000);//稍微短点
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
