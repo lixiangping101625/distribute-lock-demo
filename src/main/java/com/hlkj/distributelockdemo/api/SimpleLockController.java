@@ -33,7 +33,6 @@ public class SimpleLockController {
             e.printStackTrace();
         }
         lock.unlock();
-
     }
 
 }

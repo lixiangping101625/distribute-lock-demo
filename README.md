@@ -40,7 +40,7 @@
 ##### 方案一： 借助数据库悲观锁实现：`select ... for update`  语句对数据资源加锁。其他线程直接等待。
     直接在Navicat中测试：
         1、数据准备
-        DROP TABLE IF EXISTS `distribute-lock`;
+        DROP TABLE IF EXISTS `distribute_lock`;
         CREATE TABLE `distribute-lock`  (
           `id` int(11) NOT NULL AUTO_INCREMENT,
           `business_code` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
@@ -51,7 +51,7 @@
         -- ----------------------------
         -- Records of distribute-lock
         -- ----------------------------
-        INSERT INTO `distribute-lock` VALUES (1, 'demo', '测试demo');
+        INSERT INTO `distribute_lock` VALUES (1, 'demo', '测试demo');
         2、关闭会话的事务自动提交
             mysql事务默认是自动提交，首先在Navicat中打开两个查询窗口，分别执行 `set @@autocommit=0;`关闭会话自动提交事务。
             不然就算执行select ... for update，由于查询速度快所以效果不明显。
@@ -59,5 +59,28 @@
             结果：第一个窗口查询到数据。但第二个窗口为查询到数据！
             原因分析：是因为`select * from distribute for update`语句对所聚酷查询进行了加锁，第一个查询完成后为提交事务，导致
             第二个窗口查询为获得到数据库的锁。其实这就是所说的数据库悲观锁。
-        
+            
+    JPA测试：
+        /**
+         * 数据库悲观锁实现集群部署下资源锁的有效性
+         *      查询时就对数据库加了锁，所以在一个线程未释放锁之前下一个线程查询时是无法获得锁的。这种方式不推荐，性能极低！
+         * @return
+         */
+        @GetMapping("select4Update")
+        @Transactional(rollbackFor = Exception.class)//必须要有事务。
+        public List<DistributeLock> select4Update(){
+            log.info("进入了方法");
+            List<DistributeLock> list = distributeLockRepository.queryForUpdate();
+            if (list.size()==0)
+                throw new RuntimeException("数据不存在");
+            log.info("进入了锁");
+            try {
+                //休眠一分钟，在这一分钟内在其他端口（不同JVM）发起其他请求依然是无法查询的，说明基于数据库的悲观锁
+                //      是可以解决集群部署下的超卖问题的。
+                Thread.sleep(60000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return list;
+        }    
         

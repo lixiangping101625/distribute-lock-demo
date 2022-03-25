@@ -12,10 +12,10 @@ import java.util.Objects;
  */
 @Entity
 @Data
-@Table(name = "distribute-lock", schema = "distribute", catalog = "")
+@Table(name = "distribute_lock", schema = "distribute", catalog = "")
 public class DistributeLock {
     @Id
-    private int id;
+    private Integer id;
     private String businessCode;
     private String businessName;
 
