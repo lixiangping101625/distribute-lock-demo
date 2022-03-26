@@ -30,21 +30,16 @@ public class RedisController {
     @GetMapping("/redisLock")
     public String redisLock() {
         log.info("进入方法~");
-
-        //获取分布式锁
-        RedisLock redisLock = new RedisLock(redisTemplate, "redisKey", 30);
-        boolean lock = redisLock.getLock();
-        if (lock) {
-            log.info("获得了锁~");
-            try {
-                //模拟执行操作
-                Thread.sleep(15000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }finally {//释放锁
-                boolean result = redisLock.unLock();
-                log.info("释放锁的结果：" + result);
+        try(RedisLock redisLock = new RedisLock(redisTemplate, "redisKey", 30)) {
+            //获取分布式锁
+            if (redisLock.getLock()) {
+                log.info("获得了锁~");
+                Thread.sleep(15000);//模拟执行操作
             }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         log.info("方法执行完成");
         return "方法执行完成";

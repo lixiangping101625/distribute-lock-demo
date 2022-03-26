@@ -17,7 +17,7 @@ import java.util.UUID;
  * @decription:
  */
 @Slf4j
-public class RedisLock {
+public class RedisLock implements AutoCloseable{
 
     private RedisTemplate redisTemplate;
     private String key;
@@ -65,4 +65,10 @@ public class RedisLock {
         return result;
     }
 
+    @Override
+    public void close() throws Exception {
+        boolean b = unLock();
+        if (b)
+            log.info("释放锁成功~");
+    }
 }
