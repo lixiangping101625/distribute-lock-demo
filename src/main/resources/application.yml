@@ -10,3 +10,9 @@ spring:
       max-active: 300
       max-wait: 1000
       test-on-borrow: true
+
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    database: 0
