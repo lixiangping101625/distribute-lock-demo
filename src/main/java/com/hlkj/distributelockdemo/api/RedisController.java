@@ -1,5 +1,6 @@
 package com.hlkj.distributelockdemo.api;
 
+import com.hlkj.distributelockdemo.api.lock.RedisLock;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.RedisStringCommands;
@@ -30,23 +31,9 @@ public class RedisController {
     public String redisLock() {
         log.info("进入方法~");
 
-        String key = "redisKey";
-        String value = UUID.randomUUID().toString();
-
-        RedisCallback<Boolean> redisCallback = connection -> {
-            //设置NX
-            RedisStringCommands.SetOption setOption = RedisStringCommands.SetOption.ifAbsent();
-            //设置过期时间
-            Expiration expiration = Expiration.seconds(30);
-            //序列化key和value：注意不能简单使用getBytes()方法
-            byte[] redisKey = redisTemplate.getKeySerializer().serialize(key);
-            byte[] redisValue = redisTemplate.getKeySerializer().serialize(value);
-            //执行setnx操作
-            Boolean result = connection.set(redisKey, redisValue, expiration, setOption);
-            return result;
-        };
         //获取分布式锁
-        Boolean lock = (Boolean) redisTemplate.execute(redisCallback);
+        RedisLock redisLock = new RedisLock(redisTemplate, "redisKey", 30);
+        boolean lock = redisLock.getLock();
         if (lock) {
             log.info("获得了锁~");
             try {
@@ -55,16 +42,7 @@ public class RedisController {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }finally {//释放锁
-                String script = "if redis.call(\"get\",KEYS[1])==ARGV[1] then\n" +
-                        "\treturn redis.call(\"del\", KEYS[1])\n" +
-                        "else\n" +
-                        "\treturn 0\n" +
-                        "end";
-                RedisScript<Boolean> redisScript = RedisScript.of(script, Boolean.class);
-
-                List keys = Arrays.asList(key);
-                Boolean result = (Boolean) redisTemplate.execute(redisScript, keys, value);
-
+                boolean result = redisLock.unLock();
                 log.info("释放锁的结果：" + result);
             }
         }
